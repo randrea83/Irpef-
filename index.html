@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d6efd"/>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>Calcolatore IRPEF</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding-top: 20px; }
+        .result { margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2 class="text-center">Calcolatore IRPEF</h2>
+    <form id="taxForm">
+        <div class="form-group">
+            <label for="reddito">Reddito Complessivo (€):</label>
+            <input type="number" class="form-control" id="reddito" required>
+        </div>
+        <div class="form-group">
+            <label for="oneriDeducibili">Oneri Deducibili (€):</label>
+            <input type="number" class="form-control" id="oneriDeducibili" required>
+        </div>
+        <div class="form-group">
+            <label for="oneriDetraibili">Oneri Detraibili (€):</label>
+            <input type="number" class="form-control" id="oneriDetraibili" required>
+        </div>
+        <div class="form-group">
+            <label for="giorniLavorati">Giorni Lavorati nell'Anno:</label>
+            <input type="number" class="form-control" id="giorniLavorati" required>
+        </div>
+        <div class="form-group">
+            <label for="mensilita">Dividi per:</label>
+            <select class="form-control" id="mensilita" required>
+                <option value="1">1 mese</option>
+                <option value="12">12 mesi</option>
+                <option value="13">13 mensilità</option>
+                <option value="14">14 mensilità</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Calcola</button>
+    </form>
+
+    <div class="result">
+        <h4>Risultati:</h4>
+        <p>IRPEF: €<span id="irpef"></span></p>
+        <p>Addizionale Regionale: €<span id="addizionaleRegionale"></span></p>
+        <p>Addizionale Comunale: €<span id="addizionaleComunale"></span></p>
+        <p>Totale Imposte: €<span id="totaleImposte"></span></p>
+        <p>Reddito Netto Annuale: €<span id="redditoNetto"></span></p>
+        <p>Reddito Netto Mensile: €<span id="redditoNettoMensile"></span></p>
+    </div>
+</div>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js');
+        });
+    }
+
+    function calcolaIrpefBase(imponibile) {
+        if (imponibile <= 28000) return imponibile * 0.23;
+        if (imponibile <= 50000) return 28000 * 0.23 + (imponibile - 28000) * 0.35;
+        return 28000 * 0.23 + (50000 - 28000) * 0.35 + (imponibile - 50000) * 0.43;
+    }
+
+    function calcolaAddizionaleRegionale(reddito) {
+        if (reddito <= 15000) return reddito * 0.0162;
+        if (reddito <= 28000) return reddito * 0.0213;
+        if (reddito <= 55000) return reddito * 0.0275;
+        if (reddito <= 75000) return reddito * 0.0332;
+        return reddito * 0.0333;
+    }
+
+    function calcolaAddizionaleComunale(reddito) {
+        if (reddito <= 7500) return 0;
+        if (reddito <= 15000) return reddito * 0.0054;
+        if (reddito <= 28000) return reddito * 0.0066;
+        if (reddito <= 55000) return reddito * 0.0078;
+        if (reddito <= 75000) return reddito * 0.0079;
+        return reddito * 0.0080;
+    }
+
+    document.getElementById('taxForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const reddito = parseFloat(document.getElementById('reddito').value);
+        const oneriDeducibili = parseFloat(document.getElementById('oneriDeducibili').value);
+        const oneriDetraibili = parseFloat(document.getElementById('oneriDetraibili').value);
+        const mensilita = parseInt(document.getElementById('mensilita').value);
+
+        const imponibile = reddito - oneriDeducibili;
+        const irpef = calcolaIrpefBase(imponibile) - oneriDetraibili;
+        const addReg = calcolaAddizionaleRegionale(reddito);
+        const addCom = calcolaAddizionaleComunale(reddito);
+
+        const imposte = irpef + addReg + addCom;
+        const netto = reddito - imposte;
+        const nettoMensile = netto / mensilita;
+
+        document.getElementById('irpef').textContent = irpef.toFixed(2);
+        document.getElementById('addizionaleRegionale').textContent = addReg.toFixed(2);
+        document.getElementById('addizionaleComunale').textContent = addCom.toFixed(2);
+        document.getElementById('totaleImposte').textContent = imposte.toFixed(2);
+        document.getElementById('redditoNetto').textContent = netto.toFixed(2);
+        document.getElementById('redditoNettoMensile').textContent = nettoMensile.toFixed(2);
+    });
+</script>
+</body>
+</html>
